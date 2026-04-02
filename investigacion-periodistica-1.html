@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIGILO — Inteligencia Periodística</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --border: #1f1f1f;
+    --accent: #c8f53a;
+    --accent2: #ff4545;
+    --text: #e8e8e0;
+    --muted: #555;
+    --card: #131313;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid noise background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(200,245,58,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(200,245,58,0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  header {
+    margin-bottom: 48px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 32px;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(2.5rem, 8vw, 4.5rem);
+    letter-spacing: -0.04em;
+    line-height: 1;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .tagline {
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .sources-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+
+  .source-pill {
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 2px;
+    transition: all 0.2s;
+  }
+
+  .source-pill.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(200,245,58,0.05);
+  }
+
+  /* API Key section */
+  .config-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 24px;
+    margin-bottom: 32px;
+    position: relative;
+  }
+
+  .config-section::before {
+    content: 'CONFIG';
+    position: absolute;
+    top: -9px;
+    left: 16px;
+    background: var(--bg);
+    padding: 0 8px;
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+  }
+
+  .config-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  @media (max-width: 600px) {
+    .config-grid { grid-template-columns: 1fr; }
+  }
+
+  label {
+    display: block;
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  input[type="text"], input[type="password"] {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 14px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input:focus { border-color: var(--accent); }
+  input::placeholder { color: #333; }
+
+  /* Search area */
+  .search-section {
+    margin-bottom: 40px;
+  }
+
+  .search-box {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border);
+    transition: border-color 0.2s;
+  }
+
+  .search-box:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+
+  #query {
+    flex: 1;
+    background: var(--surface);
+    border: none;
+    color: var(--text);
+    padding: 18px 20px;
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem;
+    outline: none;
+  }
+
+  #query::placeholder { color: #2a2a2a; }
+
+  #searchBtn {
+    background: var(--accent);
+    color: #0a0a0a;
+    border: none;
+    padding: 18px 28px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  #searchBtn:hover { background: #d4ff40; }
+  #searchBtn:disabled { background: #2a2a2a; color: #555; cursor: not-allowed; }
+
+  .search-hint {
+    margin-top: 10px;
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  /* Status / loading */
+  #status {
+    display: none;
+    margin-bottom: 32px;
+  }
+
+  .status-inner {
+    border: 1px solid var(--border);
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface);
+  }
+
+  .spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .status-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .step {
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-transform: uppercase;
+    transition: color 0.3s;
+  }
+
+  .step.active { color: var(--accent); }
+  .step.done { color: #3a5a00; }
+
+  /* Results */
+  #results { display: none; }
+
+  .results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .results-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+
+  .results-meta {
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* Source sections */
+  .source-block {
+    margin-bottom: 24px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    animation: fadeUp 0.4s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .source-block:nth-child(2) { animation-delay: 0.1s; }
+  .source-block:nth-child(3) { animation-delay: 0.2s; }
+  .source-block:nth-child(4) { animation-delay: 0.3s; }
+
+  .source-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .source-name {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .source-count {
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+
+  .source-body {
+    padding: 18px;
+  }
+
+  /* Result items */
+  .result-item {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    gap: 4px;
+  }
+
+  .result-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .result-item:first-child { padding-top: 0; }
+
+  .result-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .result-meta {
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    line-height: 1.6;
+  }
+
+  .result-tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+
+  .tag {
+    font-size: 0.55rem;
+    padding: 2px 7px;
+    border: 1px solid #222;
+    color: #666;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .tag.red { border-color: #3a0000; color: var(--accent2); }
+  .tag.yellow { border-color: #2a2a00; color: #c8a000; }
+
+  /* AI Summary */
+  .ai-summary {
+    border: 1px solid rgba(200,245,58,0.2);
+    background: rgba(200,245,58,0.03);
+    padding: 24px;
+    margin-bottom: 24px;
+    position: relative;
+    animation: fadeUp 0.4s ease both;
+  }
+
+  .ai-summary::before {
+    content: '⬡ ANÁLISIS GEMINI';
+    position: absolute;
+    top: -9px;
+    left: 16px;
+    background: var(--bg);
+    padding: 0 8px;
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+  }
+
+  .ai-summary p {
+    font-size: 0.82rem;
+    line-height: 1.8;
+    color: #aaa;
+  }
+
+  .ai-summary p + p { margin-top: 12px; }
+
+  /* No results */
+  .no-results {
+    text-align: center;
+    padding: 48px;
+    color: var(--muted);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+  }
+
+  /* Error */
+  .error-box {
+    border: 1px solid rgba(255,69,69,0.3);
+    background: rgba(255,69,69,0.04);
+    padding: 18px 20px;
+    font-size: 0.75rem;
+    color: var(--accent2);
+    line-height: 1.6;
+  }
+
+  /* Footer note */
+  .footer-note {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    font-size: 0.6rem;
+    color: #333;
+    letter-spacing: 0.08em;
+    line-height: 1.8;
+  }
+
+  /* Tooltip */
+  .info {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 1px solid var(--muted);
+    border-radius: 50%;
+    text-align: center;
+    line-height: 12px;
+    font-size: 0.55rem;
+    color: var(--muted);
+    cursor: help;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+
+  .collapsible-toggle {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    text-transform: uppercase;
+    text-decoration: underline;
+    padding: 0;
+    margin-top: 8px;
+    display: block;
+  }
+
+  .collapsible-toggle:hover { color: var(--accent); }
+
+  #configBody { display: none; }
+  #configBody.open { display: block; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <span class="logo">SIGILO</span>
+    <div class="tagline">Sistema de Inteligencia para Periodismo de Investigacion</div>
+    <div class="sources-row">
+      <span class="source-pill active" id="pill-aleph">OCCRP Aleph</span>
+      <span class="source-pill active" id="pill-sanctions">OpenSanctions</span>
+      <span class="source-pill active" id="pill-icij">ICIJ Offshore Leaks</span>
+      <span class="source-pill active" id="pill-gemini">Gemma 3 27B · Gratis</span>
+      <a id="downloadBtn" href="#" onclick="downloadSelf(event)" style="text-decoration:none;">
+        <span class="source-pill active" style="cursor:pointer; border-color:var(--accent); color:var(--accent);">⬇ Descargar HTML</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- No config needed - powered by OpenRouter -->
+
+  <!-- Search -->
+  <div class="search-section">
+    <div class="search-box">
+      <input type="text" id="query" placeholder="Nombre del político, empresa, país..." autocomplete="off" />
+      <button id="searchBtn" onclick="runSearch()">Investigar →</button>
+    </div>
+    <div class="search-hint">Ejemplo: "Pedro Sánchez" · "Odebrecht" · "empresa fantasma Panamá"</div>
+  </div>
+
+  <!-- Status -->
+  <div id="status">
+    <div class="status-inner">
+      <div class="spinner"></div>
+      <div class="status-steps">
+        <div class="step" id="step1">→ Consultando OCCRP Aleph...</div>
+        <div class="step" id="step2">→ Consultando OpenSanctions...</div>
+        <div class="step" id="step3">→ Consultando ICIJ Offshore Leaks...</div>
+        <div class="step" id="step4">-> Gemma 3 27B analizando (gratis)...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="results"></div>
+
+  <div class="footer-note">
+    SIGILO consulta bases de datos publicas de periodismo de investigacion. Los datos provienen de OCCRP, ICIJ y OpenSanctions.
+    Esta herramienta es solo para fines periodisticos y de investigacion legitima. No almacena busquedas ni resultados.<br><br>
+    <strong style="color:#444;">Para usar en movil sin errores:</strong> sube este archivo a 
+    <a href="https://github.com" target="_blank" style="color:var(--accent);">GitHub Pages</a> (gratis) o abrelo desde 
+    un servidor local con <code style="color:#666;">python3 -m http.server</code>
+  </div>
+
+</div>
+
+<script>
+// ─── Config ────────────────────────────────────────────────
+// Tu key de OpenRouter — ponla aquí una sola vez
+const OPENROUTER_KEY = 'PEGA_AQUI_TU_KEY_DE_OPENROUTER';
+const MODEL = 'google/gemma-3-27b-it:free';
+
+// ─── Proxy CORS con fallback ────────────────────────────────
+// allorigins funciona bien desde file:// y https://
+async function proxyFetch(url) {
+  const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
+  const res = await fetch(proxyUrl);
+  if (!res.ok) throw new Error('Proxy error ' + res.status);
+  const wrapper = await res.json();
+  // allorigins devuelve { contents: "..." }
+  return JSON.parse(wrapper.contents);
+}
+
+// ─── API Calls ─────────────────────────────────────────────
+
+async function queryAleph(query) {
+  try {
+    const url = 'https://aleph.occrp.org/api/2/entities?q=' + encodeURIComponent(query) + '&limit=5&schema=Person,Company,Organization';
+    const data = await proxyFetch(url);
+    return (data.results || []).map(e => ({
+      name: e.caption || 'Sin nombre',
+      type: e.schema || '',
+      countries: (e.properties && e.properties.country || []).join(', '),
+      datasets: (e.datasets || []).join(', '),
+      url: 'https://aleph.occrp.org/entities/' + e.id,
+      summary: (e.properties && e.properties.summary && e.properties.summary[0]) || ''
+    }));
+  } catch(err) {
+    return { error: 'Aleph: ' + err.message };
+  }
+}
+
+async function queryOpenSanctions(query) {
+  try {
+    const url = 'https://api.opensanctions.org/search/default?q=' + encodeURIComponent(query) + '&limit=5';
+    const data = await proxyFetch(url);
+    return (data.results || []).map(e => ({
+      name: e.caption || 'Sin nombre',
+      type: e.schema || '',
+      topics: (e.properties && e.properties.topics || []).join(', '),
+      countries: (e.properties && e.properties.country || []).join(', '),
+      datasets: (e.datasets || []).slice(0, 3).join(', '),
+      url: 'https://www.opensanctions.org/entities/' + e.id + '/'
+    }));
+  } catch(err) {
+    return { error: 'OpenSanctions: ' + err.message };
+  }
+}
+
+async function queryICIJ(query) {
+  try {
+    const url = 'https://offshoreleaks.icij.org/api/1/search?q=' + encodeURIComponent(query) + '&limit=5';
+    const data = await proxyFetch(url);
+    const hits = (data.hits && data.hits.hits) || [];
+    return hits.map(function(h) {
+      var s = h._source || {};
+      return {
+        name: s.name || s.node_id || 'Sin nombre',
+        type: s.node_type || h._type || '',
+        jurisdiction: s.jurisdiction || s.country_codes || '',
+        dataset: s.sourceID || '',
+        address: s.address || '',
+        status: s.status || '',
+        url: 'https://offshoreleaks.icij.org/nodes/' + s.node_id
+      };
+    });
+  } catch(err) {
+    return { error: 'ICIJ: ' + err.message };
+  }
+}
+
+async function analyzeWithGemini(query, alephData, sanctionsData, icijData) {
+  const dataContext = `
+OCCRP Aleph: ${JSON.stringify(alephData)}
+OpenSanctions: ${JSON.stringify(sanctionsData)}
+ICIJ Offshore Leaks: ${JSON.stringify(icijData)}
+  `.trim();
+
+  const prompt = `Eres un asistente de periodismo de investigacion. El periodista busco: "${query}".
+
+Aqui estan los resultados crudos de tres bases de datos periodisticas:
+
+${dataContext}
+
+Proporciona un analisis periodistico conciso en espanol:
+1. Resume los hallazgos mas relevantes en 2-3 parrafos
+2. Senala conexiones importantes si las hay
+3. Indica que bases de datos tienen datos y cuales no encontraron nada
+4. Sugiere que investigar a continuacion
+
+Se preciso, factual y util. Si los datos son escasos, indicalo honestamente.`;
+
+  try {
+    // Usamos la key tal cual — OpenRouter acepta cualquier ASCII imprimible
+    const key = OPENROUTER_KEY.trim();
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + key,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 1000,
+        temperature: 0.3,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err?.error?.message || 'Error HTTP ' + res.status);
+    }
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content || null;
+  } catch(err) {
+    return 'Error al conectar con el modelo: ' + err.message;
+  }
+}
+
+// ─── UI Helpers ────────────────────────────────────────────
+
+function setStep(n, state) {
+  const el = document.getElementById('step' + n);
+  el.className = 'step ' + state;
+}
+
+function renderSource(title, data, renderItem) {
+  if (!data || data.error) {
+    return `<div class="source-block">
+      <div class="source-header">
+        <span class="source-name">${title}</span>
+        <span class="source-count">Error</span>
+      </div>
+      <div class="source-body">
+        <div style="font-size:0.7rem; color: var(--accent2);">${data?.error || 'No disponible'}</div>
+      </div>
+    </div>`;
+  }
+  if (!data.length) {
+    return `<div class="source-block">
+      <div class="source-header">
+        <span class="source-name">${title}</span>
+        <span class="source-count">Sin resultados</span>
+      </div>
+      <div class="source-body">
+        <div style="font-size:0.7rem; color: var(--muted);">No se encontraron registros para esta búsqueda.</div>
+      </div>
+    </div>`;
+  }
+  return `<div class="source-block">
+    <div class="source-header">
+      <span class="source-name">${title}</span>
+      <span class="source-count">${data.length} registro(s)</span>
+    </div>
+    <div class="source-body">
+      ${data.map(renderItem).join('')}
+    </div>
+  </div>`;
+}
+
+function renderAlephItem(item) {
+  return `<div class="result-item">
+    <div class="result-name"><a href="${item.url}" target="_blank" style="color:inherit;text-decoration:none;">${item.name}</a></div>
+    <div class="result-meta">${[item.type, item.countries].filter(Boolean).join(' · ')}</div>
+    ${item.summary ? `<div class="result-meta">${item.summary}</div>` : ''}
+    <div class="result-tags">
+      ${item.datasets ? `<span class="tag">${item.datasets}</span>` : ''}
+      <a href="${item.url}" target="_blank" style="text-decoration:none;"><span class="tag yellow">→ Ver en Aleph</span></a>
+    </div>
+  </div>`;
+}
+
+function renderSanctionsItem(item) {
+  const isHighRisk = item.topics.includes('sanction') || item.topics.includes('crime');
+  return `<div class="result-item">
+    <div class="result-name"><a href="${item.url}" target="_blank" style="color:inherit;text-decoration:none;">${item.name}</a></div>
+    <div class="result-meta">${[item.type, item.countries].filter(Boolean).join(' · ')}</div>
+    <div class="result-tags">
+      ${item.topics ? item.topics.split(',').map(t => `<span class="tag ${isHighRisk ? 'red' : ''}">${t.trim()}</span>`).join('') : ''}
+      <a href="${item.url}" target="_blank" style="text-decoration:none;"><span class="tag yellow">→ Ver registro</span></a>
+    </div>
+  </div>`;
+}
+
+function renderICIJItem(item) {
+  return `<div class="result-item">
+    <div class="result-name"><a href="${item.url}" target="_blank" style="color:inherit;text-decoration:none;">${item.name}</a></div>
+    <div class="result-meta">${[item.type, item.jurisdiction, item.dataset].filter(Boolean).join(' · ')}</div>
+    ${item.address ? `<div class="result-meta">${item.address}</div>` : ''}
+    <div class="result-tags">
+      ${item.status ? `<span class="tag">${item.status}</span>` : ''}
+      <a href="${item.url}" target="_blank" style="text-decoration:none;"><span class="tag yellow">→ Ver en ICIJ</span></a>
+    </div>
+  </div>`;
+}
+
+// ─── Descarga el propio HTML ────────────────────────────────
+function downloadSelf(e) {
+  e.preventDefault();
+  var html = document.documentElement.outerHTML;
+  var blob = new Blob([html], { type: 'text/html' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'sigilo.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ─── Main ──────────────────────────────────────────────────
+
+async function runSearch() {
+  const query = document.getElementById('query').value.trim();
+  if (!query) return;
+
+  const btn = document.getElementById('searchBtn');
+  const statusEl = document.getElementById('status');
+  const resultsEl = document.getElementById('results');
+
+  btn.disabled = true;
+  statusEl.style.display = 'block';
+  resultsEl.style.display = 'none';
+  resultsEl.innerHTML = '';
+  ['step1','step2','step3','step4'].forEach(s => {
+    document.getElementById(s).className = 'step';
+  });
+
+  // Consultas en paralelo
+  setStep(1, 'active');
+  const [aleph, sanctions, icij] = await Promise.all([
+    queryAleph(query).then(r => { setStep(1, 'done'); setStep(2, 'active'); return r; }),
+    queryOpenSanctions(query).then(r => { setStep(2, 'done'); setStep(3, 'active'); return r; }),
+    queryICIJ(query).then(r => { setStep(3, 'done'); return r; })
+  ]);
+
+  // Análisis con Gemini 3.1 via OpenRouter
+  setStep(4, 'active');
+  const aiSummary = await analyzeWithGemini(query, aleph, sanctions, icij);
+  setStep(4, 'done');
+
+  // Renderizar
+  statusEl.style.display = 'none';
+  resultsEl.style.display = 'block';
+
+  const timestamp = new Date().toLocaleString('es-ES');
+  let html = `
+    <div class="results-header">
+      <div class="results-title">Resultados: "${query}"</div>
+      <div class="results-meta">${timestamp}</div>
+    </div>
+  `;
+
+  if (aiSummary) {
+    html += `<div class="ai-summary"><p>${aiSummary.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>')}</p></div>`;
+  }
+
+  html += renderSource('OCCRP ALEPH', aleph, renderAlephItem);
+  html += renderSource('OPENSANCTIONS', sanctions, renderSanctionsItem);
+  html += renderSource('ICIJ OFFSHORE LEAKS', icij, renderICIJItem);
+
+  resultsEl.innerHTML = html;
+  btn.disabled = false;
+}
+
+// Enter key
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('query').addEventListener('keydown', e => {
+    if (e.key === 'Enter') runSearch();
+  });
+});
+</script>
+</body>
+</html>
